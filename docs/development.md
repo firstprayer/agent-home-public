@@ -87,7 +87,7 @@ uv run --managed-python --group macos-build python packaging/macos/build.py
 
 The build uses the committed Vue assets, freezes Python and its locked runtime
 dependencies, compiles an AppKit/WKWebView launcher, and creates
-`dist/Agent-Home-0.3.2-macOS-arm64.dmg` (architecture follows the build machine).
+`dist/Agent-Home-0.3.3-macOS-<architecture>.dmg` (architecture follows the build machine).
 Only explicit application assets enter the bundle, never user data or secrets.
 The native launcher targets macOS 15.0, and the build rejects bundled binaries
 that require a newer system. Use uv’s managed Python to avoid linking against
@@ -124,12 +124,14 @@ release tag must match the version in `pyproject.toml`, and notes must exist at
 
 ```sh
 git fetch origin
-git tag v0.3.2 origin/master
-git push origin v0.3.2
+git tag v0.3.3 origin/master
+git push origin v0.3.3
 ```
 
-The tag runs the regression checks and builds the DMG on GitHub's macOS runner.
-Only after those checks pass does it publish a preview Release with the DMG and
+The tag runs the regression checks and builds separate DMGs on GitHub’s macOS
+ARM64 (`macos-15`) and Intel (`macos-15-intel`) runners. Both packages run the
+frozen-server checks on their native architecture before publication.
+Only after those checks pass does it publish a preview Release with both DMGs and
 SHA-256 checksums, then dispatch the Pages deployment. Publishing needs no
 personal access token. Enable Pages with GitHub Actions as its source once in
 repository settings. Never upload workstation-built packages without a separate
