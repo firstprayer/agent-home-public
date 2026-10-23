@@ -11,6 +11,18 @@ allowed sleeve folders live under Settings.
 The host computer must stay awake, online, and running Agent Home. Telegram and
 your configured Codex provider handle their respective communications.
 
+## Codex sign-in and subscriptions
+
+Agent Home connects to your existing Codex runtime and uses the authentication
+already configured there. If you sign in to Codex with ChatGPT subscription
+access, Agent Home does not need another model API key. Your plan's eligibility,
+usage limits and model access still apply. Existing API/provider configurations
+continue to use their own billing.
+
+See [OpenAI's authentication guide](https://developers.openai.com/codex/auth) for
+ChatGPT sign-in and API-key sign-in. BotFather's Telegram bot token is a separate
+credential; it is still required to connect each bot.
+
 ## Run and configure
 
 ### macOS app

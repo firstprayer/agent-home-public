@@ -63,14 +63,15 @@ onMounted(() => {
           <span class="dot"></span> A LITTLE CLOSER TO YOUR CODEX.
         </p>
         <h1 id="hero-title">
-          Talk to your<br />Codex agent,<br /><em>anywhere.</em>
+          Talk to your<br />Codex agents,<br /><em>anywhere.</em>
         </h1>
         <p class="intro">
-          Your computer does the work.<br />Your conversation goes with you.
+          Step away from the keyboard.<br />Stay connected to your agents.
         </p>
         <p class="hero-description">
-          Connect Telegram to Codex on your machine. Pick up the same session
-          from your phone — with messages, photos, videos, and voice notes.
+          Your Codex agents are already working on your computer. Keep talking
+          to the same sessions from Telegram while you’re AFK, as if you never
+          left.
         </p>
         <div class="hero-actions">
           <a class="button" href="#start"
@@ -80,8 +81,9 @@ onMounted(() => {
           >
         </div>
         <p class="hero-note">
-          Free &amp; open source <span>·</span> macOS first <span>·</span> Your
-          Codex account
+          Free &amp; open source <span>·</span> macOS first <span>·</span>
+          Your existing Codex sign-in<br />
+          Keep your computer awake and online.
         </p>
       </div>
       <figure class="demo-stage" aria-labelledby="demo-caption">
@@ -104,7 +106,7 @@ onMounted(() => {
             </div>
             <div
               v-for="agent in [
-                { name: 'Research', initials: 'RE', status: 'Idle' },
+                { name: 'Research', initials: 'RE', status: 'Working' },
                 { name: 'Studio', initials: 'ST', status: 'Working' },
                 { name: 'Operations', initials: 'OP', status: 'Ready' },
               ]"
@@ -125,7 +127,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="desktop-foot">
-            <span class="dot"></span> Identity stays. Sleeves can change.
+            <span class="dot"></span> Research and Studio are working in parallel.
           </div>
         </div>
         <div class="connection-trace" aria-hidden="true">
@@ -201,7 +203,7 @@ onMounted(() => {
       </figure>
     </section>
     <div class="promise-strip wrap">
-      <span>Same Codex session.</span><span>Your own computer.</span
+      <span>Your existing Codex sessions.</span><span>Multiple agents, working in parallel.</span
       ><span>A chat you already know.</span>
     </div>
     <section id="how-it-works" class="how wrap" aria-labelledby="how-title">
@@ -273,10 +275,11 @@ onMounted(() => {
           </article>
           <article>
             <span class="feature-symbol" aria-hidden="true">⌂</span>
-            <h3>A home for each project.</h3>
+            <h3>Run agents in parallel.</h3>
             <p>
-              Keep separate identities for separate work. Change the runtime
-              sleeve while keeping the identity and Telegram connection.
+              Let one agent research while another builds. Each project keeps
+              its own Codex session and Telegram bot, so you can check in and
+              steer each one from your phone.
             </p>
           </article>
           <article>
@@ -319,6 +322,15 @@ onMounted(() => {
             Yes. Agent Home is free and open source. You bring your own Codex
             account and Telegram bot. Any usage charges from your configured
             model service remain separate.
+          </p>
+        </details>
+        <details>
+          <summary>Do I need a separate model API key?</summary>
+          <p>
+            Agent Home uses the sign-in already configured in Codex. If you use
+            ChatGPT subscription access in Codex, you do not need an extra model
+            API key for Agent Home. Your plan’s limits still apply. Existing
+            API-based providers keep their own billing and configuration.
           </p>
         </details>
         <details>
@@ -428,7 +440,7 @@ uv run python bridge.py</code></pre>
     <a class="brand" href="#main"
       ><img :src="mark" alt="" width="32" height="32" />Agent Home</a
     >
-    <p>Talk to your Codex agent, anywhere.</p>
+    <p>Talk to your Codex agents, anywhere.</p>
     <a :href="repository">By firstprayer <span aria-hidden="true">↗</span></a>
   </footer>
 </template>

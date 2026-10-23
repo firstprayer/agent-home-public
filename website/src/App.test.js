@@ -21,6 +21,19 @@ describe('public project site', () => {
     wrapper.unmount();
   });
 
+  it('shows independent parallel agents and accurately describes existing subscription sign-in', () => {
+    const wrapper = mount(App);
+    expect(wrapper.get('h1').text()).toContain('Codex agents,');
+    expect(wrapper.get('.hero-description').text()).toContain('AFK');
+    expect(wrapper.get('.hero-note').text()).toContain('Keep your computer awake and online.');
+    expect(wrapper.findAll('.desktop-row .status.working')).toHaveLength(2);
+    expect(wrapper.get('.feature-grid').text()).toContain('Run agents in parallel.');
+    const auth = wrapper.findAll('details').find(item => item.get('summary').text().includes('separate model API key'));
+    expect(auth.text()).toContain('ChatGPT subscription access in Codex');
+    expect(auth.text()).toContain('Your plan’s limits still apply.');
+    wrapper.unmount();
+  });
+
   it('opens a direct installation link after Vue renders its target section', () => {
     history.replaceState(null, '', '/#start');
     const scroll = vi.fn();
@@ -39,7 +52,7 @@ describe('public project site', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const wrapper = mount(App);
-    expect(wrapper.get('h1').text()).toContain('Talk to yourCodex agent,anywhere.');
+    expect(wrapper.get('h1').text()).toContain('Talk to yourCodex agents,anywhere.');
     expect(wrapper.get('figcaption').text()).toContain('Example workspace');
     expect(wrapper.text()).toContain('uv run --managed-python --group macos-build python packaging/macos/build.py');
     expect(wrapper.text()).toContain('uv run python bridge.py');
