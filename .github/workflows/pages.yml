@@ -37,7 +37,7 @@ jobs:
           path: build/site
 
   deploy:
-    if: github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.publish
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
     needs: build
     runs-on: ubuntu-latest
     permissions:

@@ -65,6 +65,8 @@ describe('public project site', () => {
       else expect(href).toMatch(/^https:\/\//);
     }
     expect(wrapper.get('.nav-source').attributes('href')).toBe('https://github.com/firstprayer/agent-home-public');
+    expect(wrapper.findAll('a').find(link => link.text().includes('Read the full guide')).attributes('href')).toBe(
+      'https://github.com/firstprayer/agent-home-public/blob/master/docs/guide.md');
     wrapper.unmount();
   });
 });

@@ -51,7 +51,7 @@ Apply these rules to code, tests, configuration, and documentation in this repos
 - Existing vanilla JavaScript interfaces must migrate to a frontend framework when frontend development resumes; do not extend the vanilla implementation.
 - Commit the production bundle in `agent_home/static/build/` with source changes so the Python service runs without Node at runtime. Never edit the generated bundle by hand; CI rebuilds it and rejects stale output.
 - Keep source styles and Vue templates readable. Minification belongs to the production build.
-- `website/` is a separate Vue project site. It must work without the local service; use clearly labeled fictional workspaces for demonstrations. Upload only its `build/site/` artifact to Pages. Public deployment uses the explicit `publish` workflow input after privacy review; a successful tagged release dispatches it automatically. Publish only CI-built packages with checksums after the release checks pass.
+- `website/` is a separate Vue project site. It must work without the local service; use clearly labeled fictional workspaces for demonstrations. Upload only its `build/site/` artifact to Pages. After privacy review, website changes deploy from reviewed `master` pushes; the explicit `publish` workflow input remains available and tagged releases dispatch it automatically. Publish only CI-built packages with checksums after the release checks pass.
 
 ## Configuration and storage
 

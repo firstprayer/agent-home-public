@@ -414,7 +414,7 @@ uv run --managed-python --group macos-build python packaging/macos/build.py</cod
 uv run python bridge.py</code></pre>
           <p>Open <code>http://127.0.0.1:8765/</code> on the host computer.</p>
         </details>
-        <a class="text-link" :href="`${repository}#readme`"
+        <a class="text-link" :href="`${repository}/blob/master/docs/guide.md`"
           >Read the full guide <span aria-hidden="true">↗</span></a
         >
       </div>
