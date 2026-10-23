@@ -1,0 +1,53 @@
+name: Project website
+
+on:
+  push:
+    branches: [master]
+    paths: ['website/**', 'package.json', 'package-lock.json', '.nvmrc', '.github/workflows/pages.yml']
+  pull_request:
+    paths: ['website/**', 'package.json', 'package-lock.json', '.nvmrc', '.github/workflows/pages.yml']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the website after the pre-release privacy review is complete'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run site:test
+      - run: npm run site:build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/site
+
+  deploy:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy project website
+        id: deployment
+        uses: actions/deploy-pages@v4

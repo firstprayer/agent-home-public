@@ -1,0 +1,27 @@
+{
+  "name": "agent-home-frontend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.12.0"
+  },
+  "scripts": {
+    "dev": "vite --config frontend/vite.config.js",
+    "build": "vite build --config frontend/vite.config.js",
+    "test": "vitest run --config frontend/vite.config.js",
+    "site:dev": "vite --config website/vite.config.js",
+    "site:build": "vite build --config website/vite.config.js",
+    "site:preview": "vite preview --config website/vite.config.js",
+    "site:test": "vitest run --config website/vite.config.js"
+  },
+  "dependencies": {
+    "vue": "3.5.44"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.4.6",
+    "jsdom": "29.1.1",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,6 @@
+# Copy to service.toml and run: uv run python bridge.py --config service.toml
+# Relative database paths resolve against this configuration file's directory.
+db_path = "~/.config/agent-communication/agent-home.sqlite3"
+port = 8765
+# Empty disables creation. Configure these in the dashboard's Settings page.
+sleeve_allowed_folders = []
