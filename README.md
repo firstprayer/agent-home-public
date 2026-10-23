@@ -2,6 +2,10 @@
 
 **Talk to your Codex agent, anywhere.**
 
+[Download for macOS](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2) ·
+[Project website](https://firstprayer.github.io/agent-home-public/) ·
+[Get started](#run-and-configure)
+
 A free, open-source app that connects Telegram to Codex running on your computer.
 Your computer does the work. Your conversation goes with you.
 
@@ -30,7 +34,8 @@ your configured Codex provider handle their respective communications.
 
 **Preview status:** macOS desktop first; the Python server supports macOS and
 Linux. Windows support is planned. Current DMGs are ad-hoc signed and are not
-Apple notarized. A public macOS download has not been released yet; build from source below.
+Apple notarized. The v0.3.2 preview download supports Apple Silicon Macs on macOS
+15 or later. Intel users can build from source; Windows is not supported yet.
 
 Agent identities have stable UUIDs; their runtime sleeves can be assigned,
 replaced, or restored. Only confirmed Codex root sessions are supported, and at
@@ -41,6 +46,10 @@ storage and allowed sleeve folders live under Settings.
 ## Run and configure
 
 ### macOS app
+
+Download the [v0.3.2 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2).
+Choose `Agent-Home-0.3.2-macOS-arm64.dmg` for an Apple Silicon Mac. The release
+includes `SHA256SUMS` and the corresponding source code.
 
 Open the DMG, drag **Agent Home** into **Applications**, then open it. A native
 window displays the existing Vue dashboard; there is no localhost address to
@@ -65,8 +74,8 @@ app preserves identities, policies, tokens, and delivery checkpoints. Logs live
 at `~/Library/Logs/Agent Home/server.log`. Stop an existing terminal-launched
 bridge before starting the desktop app; the database still has one writer.
 
-For normal operation, prefer `/Applications/Agent Home.app` for normal operation
-and upgrades. Develop against a disposable database on a separate port; deploy
+For normal operation and upgrades, prefer `/Applications/Agent Home.app`.
+Develop against a disposable database on a separate port; deploy
 changes by rebuilding and replacing the installed app, then verify its native
 window and restored agents/listeners. Keep the existing service configuration and
 database outside the bundle, and let Codex keep running during upgrades.
@@ -612,8 +621,9 @@ npm run site:build
 
 The site builds to `build/site/` with the `/agent-home-public/` GitHub Pages base path.
 The Pages workflow builds on PRs and relevant master changes. Public deployment
-requires a manual workflow dispatch on master with **publish** enabled, after the
-pre-release privacy review. Only `build/site/` is uploaded, never the Python app,
+uses a workflow dispatch on master with **publish** enabled, after the
+privacy review. A successful tagged release triggers this dispatch automatically.
+Only `build/site/` is uploaded, never the Python app,
 local configuration, recordings, or database. Configure the repository's Pages
 source as GitHub Actions when ready to publish.
 
@@ -626,3 +636,22 @@ that users interact with over a network must offer those users their
 corresponding source as required by section 13. Commercial use is permitted.
 Third-party components retain their respective licenses; see
 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+
+## Publishing a release
+
+Make release changes on a feature branch and merge its PR after checks pass. The
+release tag must match the version in `pyproject.toml`, and notes must exist at
+`docs/releases/<tag>.md`. Push the tag from the reviewed `master` commit:
+
+```sh
+git fetch origin
+git tag v0.3.2 origin/master
+git push origin v0.3.2
+```
+
+The tag runs the regression checks and builds the DMG on GitHub's macOS runner.
+Only after those checks pass does it publish a preview Release with the DMG and
+SHA-256 checksums, then dispatch the Pages deployment. Publishing needs no
+personal access token. Enable Pages with GitHub Actions as its source once in
+repository settings. Never upload workstation-built packages without a separate
+privacy review. Check the published downloads and website after deployment.
