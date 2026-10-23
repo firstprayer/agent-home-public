@@ -5,6 +5,18 @@ import App from './App.vue';
 afterEach(() => { vi.unstubAllGlobals(); history.replaceState(null, '', '/'); });
 
 describe('public project site', () => {
+  it('offers the versioned macOS download with release checksums and honest platform limits', () => {
+    const wrapper = mount(App);
+    expect(wrapper.get('.download-link').attributes('href')).toBe(
+      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.2/Agent-Home-0.3.2-macOS-arm64.dmg');
+    expect(wrapper.get('.release-note a').attributes('href')).toBe(
+      'https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2');
+    expect(wrapper.get('.release-note').text()).toContain('AGPLv3');
+    expect(wrapper.get('.release-note').text()).toContain('Apple Silicon');
+    expect(wrapper.get('.build-note').text()).toContain('not Apple notarized');
+    wrapper.unmount();
+  });
+
   it('opens a direct installation link after Vue renders its target section', () => {
     history.replaceState(null, '', '/#start');
     const scroll = vi.fn();
