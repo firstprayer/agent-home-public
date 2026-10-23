@@ -54,8 +54,8 @@ jobs:
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
         run: |
-          lipo -verify_arch "$EXPECTED_ARCH" 'dist/Agent Home.app/Contents/MacOS/AgentHome'
-          lipo -verify_arch "$EXPECTED_ARCH" 'dist/Agent Home.app/Contents/MacOS/agent-home-server'
+          lipo 'dist/Agent Home.app/Contents/MacOS/AgentHome' -verify_arch "$EXPECTED_ARCH"
+          lipo 'dist/Agent Home.app/Contents/MacOS/agent-home-server' -verify_arch "$EXPECTED_ARCH"
       - name: Exercise the frozen server with disposable data
         run: |
           uv run python - <<'PY'
