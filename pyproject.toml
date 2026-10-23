@@ -1,6 +1,6 @@
 [project]
 name = "agent-home"
-version = "0.3.2"
+version = "0.3.3"
 description = "Talk to your Codex agent, anywhere. A local Telegram companion for Codex."
 license = "AGPL-3.0-only"
 readme = "README.md"
