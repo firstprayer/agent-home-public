@@ -2,7 +2,7 @@
 
 **Talk to your Codex agent, anywhere.**
 
-[Download for macOS](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2) ·
+[Download for macOS](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3) ·
 [Website](https://firstprayer.github.io/agent-home-public/) ·
 [User guide](docs/guide.md)
 
@@ -25,14 +25,16 @@ Your computer does the work. Your conversation goes with you.
 ## Get started
 
 1. Install and sign in to Codex CLI on your computer.
-2. Download the [v0.3.2 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2),
+2. Download the [v0.3.3 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3),
    drag **Agent Home** into Applications, then open it. Python and Node are not
    required for the download.
 3. Follow **Get started** in the app: create an identity, assign a Codex sleeve,
-   connect a BotFather token, and allow your Telegram account in **External Identities**.
+   connect a [Telegram bot](docs/guide.md#create-a-telegram-bot-for-an-agent),
+   and allow your Telegram account in **External Identities**.
 4. Open your bot in Telegram and send your first message.
 
-The DMG supports **Apple Silicon Macs on macOS 15 or later**. It is ad-hoc signed
+Separate DMGs support **Apple Silicon and Intel Macs on macOS 15 or later**.
+They are ad-hoc signed
 and **not Apple notarized**; if macOS blocks it, review the release and follow
 [Apple's Open Anyway instructions](https://support.apple.com/en-us/102445).
 The download page includes SHA-256 checksums.
@@ -41,7 +43,7 @@ Keep your computer awake, online, and running Agent Home. Bring your own Codex
 account and Telegram bot; model-provider charges remain separate. Incoming files
 are limited to 20 MB. The app has no automatic updater or login startup.
 
-Intel Mac users can [build from source](docs/development.md#macos-packaging).
+You can also [build from source](docs/development.md#macos-packaging).
 The Python server also [runs on Linux](docs/guide.md#command-line).
 Windows support is planned.
 

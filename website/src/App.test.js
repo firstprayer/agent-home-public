@@ -5,12 +5,16 @@ import App from './App.vue';
 afterEach(() => { vi.unstubAllGlobals(); history.replaceState(null, '', '/'); });
 
 describe('public project site', () => {
-  it('offers the versioned macOS download with release checksums and honest platform limits', () => {
+  it('offers separate Apple Silicon and Intel downloads for the same release with clear platform limits', () => {
     const wrapper = mount(App);
     expect(wrapper.get('.download-link').attributes('href')).toBe(
-      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.2/Agent-Home-0.3.2-macOS-arm64.dmg');
+      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-arm64.dmg');
+    expect(wrapper.get('.download-link').text()).toContain('Apple Silicon');
+    expect(wrapper.get('.intel-download-link').attributes('href')).toBe(
+      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-x86_64.dmg');
+    expect(wrapper.get('.intel-download-link').text()).toContain('Intel Mac');
     expect(wrapper.get('.release-note a').attributes('href')).toBe(
-      'https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2');
+      'https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3');
     expect(wrapper.get('.release-note').text()).toContain('AGPLv3');
     expect(wrapper.get('.release-note').text()).toContain('Apple Silicon');
     expect(wrapper.get('.build-note').text()).toContain('not Apple notarized');

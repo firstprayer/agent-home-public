@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 const repository = "https://github.com/firstprayer/agent-home-public";
-const release = `${repository}/releases/tag/v0.3.2`;
-const download = `${repository}/releases/download/v0.3.2/Agent-Home-0.3.2-macOS-arm64.dmg`;
+const release = `${repository}/releases/tag/v0.3.3`;
+const download = `${repository}/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-arm64.dmg`;
+const intelDownload = `${repository}/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-x86_64.dmg`;
 const mark = `${import.meta.env.BASE_URL}mark.svg`;
 const selected = ref("text");
 const examples = {
@@ -372,18 +373,21 @@ onMounted(() => {
           Install and sign in to Codex CLI first. Then give your agent a way to
           reach you.
         </p>
-        <a class="button download-link" :href="download"
-          >Download for macOS <span aria-hidden="true">↓</span></a
-        >
+        <div class="download-options">
+          <a class="button download-link" :href="download"
+            >Apple Silicon <span aria-hidden="true">↓</span></a>
+          <a class="button intel-download-link" :href="intelDownload"
+            >Intel Mac <span aria-hidden="true">↓</span></a>
+        </div>
         <p class="release-note">
-          Free under AGPLv3. Apple Silicon · macOS 15 or later.<br />
-          <a :href="release">v0.3.2 preview · Release notes &amp; checksums ↗</a>
+          Free under AGPLv3. Apple Silicon &amp; Intel · macOS 15 or later.<br />
+          <a :href="release">v0.3.3 preview · Release notes &amp; checksums ↗</a>
         </p>
       </div>
       <div class="install">
         <div class="install-top">
           <h3>macOS preview</h3>
-          <span class="local-label">v0.3.2</span>
+          <span class="local-label">v0.3.3</span>
         </div>
         <p>
           Download the DMG, drag <strong>Agent Home</strong> into Applications,
@@ -396,12 +400,12 @@ onMounted(() => {
           the download.
         </p>
         <p class="build-note">
-          This Apple Silicon preview is ad-hoc signed and not Apple notarized.
+          These macOS previews are ad-hoc signed and not Apple notarized.
           If macOS blocks it, review the source and follow
           <a href="https://support.apple.com/en-us/102445">Apple’s Open Anyway instructions</a>.
         </p>
         <details>
-          <summary>Build from source, including Intel Macs</summary>
+          <summary>Build from source</summary>
           <p>Requires uv and Xcode Command Line Tools.</p>
           <pre aria-label="Build the macOS app"><code>git clone https://github.com/firstprayer/agent-home-public.git
 cd agent-home-public
