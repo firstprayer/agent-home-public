@@ -10,7 +10,7 @@ from .utils import safe_error
 
 
 HELP = ("AdminAppSleeve commands:\n"
-        "/menu, /start — choose an agent and an action\n"
+        "/menu, /start — manage agents, Telegram, and new sleeves in allowed folders\n"
         "/list — all accessible agents, current status, and assigned sleeve\n"
         "/create <agent name> — create an identity, then choose an existing sleeve\n"
         "/bind <agent name> — choose an existing Codex root sleeve\n"
@@ -89,9 +89,10 @@ class AdminAppCommands:
     async def handle_callback(self, identity, callback):
         bridge = self.bridge
         user, chat = callback.get("from", {}), callback.get("message", {}).get("chat", {})
+        await self.answer_callback(identity, callback)
         try:
-            async with asyncio.timeout(10):
-                action, nonce, value = callback.get("data", "").split(":")
+            action, nonce, value = callback.get("data", "").split(":")
+            async with asyncio.timeout(90 if action == "admin-menu" and value == "launch" else 10):
                 if action == "admin-menu":
                     text, extra = await self.menu.action(identity, callback, nonce, value)
                     bridge.enqueue(identity.name, text, chat_ids=[chat["id"]], **extra)
@@ -123,8 +124,6 @@ class AdminAppCommands:
         except (ValueError, RuntimeError, ConnectionError, OSError, asyncio.TimeoutError) as error:
             bridge.enqueue(identity.name, "Admin command failed: " + (safe_error(error) or
                 "timed out; result not confirmed. Check /list before retrying"), chat_ids=[chat["id"]])
-        finally:
-            await self.answer_callback(identity, callback)
 
     async def answer_callback(self, identity, callback):
         try:

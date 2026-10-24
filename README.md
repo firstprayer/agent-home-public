@@ -20,7 +20,8 @@ Your computer does the work. Your conversation goes with you.
 - **Give every project a home.** Durable identities, separate Telegram bots,
   replaceable runtime sleeves, and visible connection status.
 - **Stay in control.** Explicit sender access, local SQLite storage, and recovery
-  of saved managed sessions.
+  of saved managed sessions. Create sleeves in configured folders from the Admin
+  menu, or copy a complete terminal resume command from the desktop dashboard.
 
 ## Get started
 
