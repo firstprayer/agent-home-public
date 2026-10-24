@@ -128,6 +128,13 @@ codex resume --yolo --remote unix://<control socket> --cd <folder> <full thread 
 
 An incomplete UUID, such as its final eight characters, is not a sleeve address.
 
+To join an assigned session from your computer, expand **Connect in terminal**
+in the agent table or **Change sleeve** dialog, then click **Copy resume command**.
+Paste the complete command into your terminal. It uses the current sleeve's full
+UUID, socket, and working folder, quotes paths for the shell, and preserves the
+session's existing permissions. If clipboard access is unavailable, select and
+copy the displayed command manually. This does not create or reassign a sleeve.
+
 The detached PTY keeper and Codex process survive Agent Home exit/restart or
 bundle replacement. App shutdown, reassignment, and settings changes do not kill
 them. The shared Codex daemon owns the thread; the bridge reconnects by its exact
@@ -278,6 +285,20 @@ token**, **Assign / Change sleeve**, or **Stop work**. The agent card shows cach
 status, its current sleeve, and its Telegram username. **New agent identity** asks
 for a name and opens the new identity's action menu. Scoped users see only their
 accessible agents; configuration actions require Always allowed access.
+
+**Create new sleeve** opens a paginated list of the application-level
+`sleeve_allowed_folders` from desktop **Settings**. Select a folder, review its
+full path, then confirm **Create and assign**. Admin starts an independent Codex
+root with `--yolo` in that exact existing folder and assigns it to the selected
+identity. No arbitrary folder input or shell command is accepted in chat. An
+empty list disables creation; configure folders on the desktop first. The
+picker expires after five minutes or restart, and changes to the folder list,
+target binding, or management access invalidate it. Creation and assignment
+recheck access after Codex requests. Confirmations are consumed once, and
+uncertain launches are never automatically retried. If creation succeeds but
+assignment fails, the sleeve remains available for explicit assignment and its
+full UUID is reported; its independent process is not stopped. A confirmation
+can take up to 90 seconds including initialization and assignment.
 
 Token and name inputs use Telegram's reply interface: reply to the specific
 prompt within five minutes. `/cancel` or a new menu invalidates the previous

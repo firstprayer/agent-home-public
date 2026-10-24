@@ -1,9 +1,11 @@
 """Sender-scoped Admin menus and explicit replies for configuration input."""
 
+import asyncio
 import hashlib
 import json
 import secrets
 import time
+import uuid
 
 from .utils import TOKEN_PATTERN
 
@@ -65,7 +67,8 @@ class AdminMenu:
         external = self.bridge.store.match_external_identity(user)
         if external and external.communication_policy.mode == "always_allowed" and target.id != identity.id:
             buttons.extend([[self.button(record, "Set / change Telegram token", "token")],
-                [self.button(record, "Change sleeve" if target.sleeve else "Assign sleeve", "bind")]])
+                [self.button(record, "Change sleeve" if target.sleeve else "Assign sleeve", "bind")],
+                [self.button(record, "Create new sleeve", "create")]])
         if target.sleeve and target.sleeve.kind == "codex":
             buttons.append([self.button(record, "Stop work", "kill")])
         if target.id == identity.id:
@@ -76,6 +79,46 @@ class AdminMenu:
     @staticmethod
     def communication_stamp(target):
         return (target.telegram.bot_id, hashlib.sha256(target.telegram.token.encode()).hexdigest()) if target.telegram else None
+
+    @staticmethod
+    def sleeve_stamp(target):
+        sleeve = target.sleeve
+        return (sleeve.kind, getattr(sleeve, "thread_id", None), getattr(sleeve, "socket_path", None)) if sleeve else None
+
+    def folders(self, identity, user, target, page=0, record=None):
+        if record is None:
+            options = [str(folder) for folder in self.bridge.config.sleeve_allowed_folders]
+            if not options:
+                raise ValueError("No sleeve folders configured. Add folders in desktop Settings → Sleeve allowed folders")
+            record = self.session(identity, user, "folders", target_id=target.id,
+                binding=self.sleeve_stamp(target), folders=options)
+        pages = (len(record["folders"]) + 9) // 10
+        if not 0 <= page < pages:
+            raise ValueError("Folder page unavailable. Send /menu again")
+        lines = [f"Choose a folder for {target.name}'s new Codex sleeve ({page + 1}/{pages}):"]
+        buttons = []
+        for index in range(page * 10, min((page + 1) * 10, len(record["folders"]))):
+            folder = record["folders"][index]
+            lines.append(f"{index + 1}. {folder}")
+            buttons.append([self.button(record, f"{index + 1}. {folder}"[:60], f"folder{index}")])
+        navigation = [self.button(record, label, f"folders{destination}")
+            for label, destination in (("← Previous", page - 1), ("Next →", page + 1)) if 0 <= destination < pages]
+        if navigation:
+            buttons.append(navigation)
+        buttons.append([self.button(record, "← All agents", "home")])
+        return "\n".join(lines), {"admin_menu": record["nonce"], "reply_markup": {"inline_keyboard": buttons}}
+
+    def check_creation(self, identity, user, chat, record):
+        self.commands.require_manager(identity, user, chat)
+        current = self.bridge.identity(identity.name)
+        if record["expires"] < time.monotonic() or record["bot_id"] != current.telegram.bot_id:
+            raise ValueError("This menu has expired. Send /menu again")
+        target = self.target(user, record)
+        if target.id == current.id or self.sleeve_stamp(target) != record["binding"]:
+            raise ValueError("The agent's sleeve changed. Send /menu again")
+        if record["folders"] != [str(folder) for folder in self.bridge.config.sleeve_allowed_folders]:
+            raise ValueError("Allowed folders changed. Send /menu again")
+        return target
 
     def prompt(self, identity, user, kind, target=None):
         fields = {"target_id": target.id, "communication": self.communication_stamp(target)} if target else {}
@@ -101,8 +144,10 @@ class AdminMenu:
             record = self.current(identity, user)
             if record["nonce"] != nonce:
                 return False
-            if record["kind"] in {"token", "new"}:
+            if record["kind"] in {"token", "new", "folders", "launch"}:
                 self.commands.require_manager(identity, user, {"id": user["id"], "type": "private"})
+                if record["kind"] in {"folders", "launch"}:
+                    self.check_creation(identity, user, {"id": user["id"], "type": "private"}, record)
             elif record["kind"] == "agent":
                 self.target(user, record)
             elif record["kind"] == "home":
@@ -119,7 +164,7 @@ class AdminMenu:
             user, chat = {"id": user_id}, {"id": user_id, "type": "private"}
             if not identity or not self.bridge.is_admin(identity.name) or not self.bridge.authorized(identity, user, chat):
                 self.sessions.pop((identity_id, user_id), None)
-            elif record["kind"] in {"token", "new"}:
+            elif record["kind"] in {"token", "new", "folders", "launch"}:
                 external = self.bridge.store.match_external_identity(user)
                 if external.communication_policy.mode != "always_allowed":
                     self.sessions.pop((identity_id, user_id), None)
@@ -185,6 +230,31 @@ class AdminMenu:
             raise ValueError("This menu has expired. Send /menu again")
         if action == "home":
             return self.home(identity, user)
+        if record["kind"] in {"folders", "launch"}:
+            target = self.check_creation(identity, user, chat, record)
+            if record["kind"] == "folders":
+                if action.startswith("folders"):
+                    return self.folders(identity, user, target, int(action[7:]), record)
+                if action.startswith("folder") and 0 <= int(action[6:]) < len(record["folders"]):
+                    record.update(kind="launch", folder=record["folders"][int(action[6:])])
+                    return (f"Create and assign a new Codex sleeve to {target.name}?\nFolder: {record['folder']}\n"
+                        "This starts an independent Codex process with --yolo (full access, no approval prompts).\n"
+                        "An existing active turn must be stopped or finished before replacement.",
+                        {"admin_menu": record["nonce"], "reply_markup": {"inline_keyboard": [
+                            [self.button(record, "Create and assign", "launch")],
+                            [self.button(record, "← All agents", "home")]]}})
+            elif action == "launch":
+                self.sessions.pop((identity.id, user["id"]))
+                check = lambda: self.check_creation(identity, user, chat, record)
+                launch = await self.bridge.create_sleeve(record["folder"], str(uuid.uuid4()), check_authorization=check)
+                try:
+                    await self.bridge.assign_sleeve(target.name, launch["thread_id"], launch["socket_path"],
+                                                   check_authorization=check)
+                except (ValueError, RuntimeError, ConnectionError, OSError, asyncio.TimeoutError) as error:
+                    raise ValueError(f"Sleeve created ({launch['thread_id']}) but not assigned. "
+                        "It remains available; check /list or use Assign sleeve. " + str(error)) from error
+                text, extra = self.agent(identity, user, self.bridge.identity(target.name))
+                return "New Codex sleeve created and assigned.\n\n" + text, extra
         if record["kind"] == "home":
             if action.startswith("page"):
                 return self.home(identity, user, int(action[4:]))
@@ -208,4 +278,6 @@ class AdminMenu:
                 return self.prompt(identity, user, "token", target)
             if action == "bind":
                 return await self.commands.choose_sleeve(identity, user, chat, target.name)
+            if action == "create":
+                return self.folders(identity, user, target)
         raise ValueError("Action unavailable. Send /menu again")

@@ -1,4 +1,5 @@
 <script setup>
+import ResumeCommand from './ResumeCommand.vue';
 defineProps({identities: {type: Array, required: true}});
 defineEmits(['sleeve', 'communication']);
 const statuses = {active: 'Working', ready: 'Ready', idle: 'Idle', unassigned: 'Needs sleeve', unavailable: 'Unavailable', checking: 'Checking', systemError: 'Runtime error', notLoaded: 'Not loaded'};
@@ -23,6 +24,7 @@ const statuses = {active: 'Working', ready: 'Ready', idle: 'Idle', unassigned: '
               <strong>{{ identity.sleeve.thread_name || 'Untitled conversation' }}</strong>
               <span class="muted">{{ identity.sleeve.cwd || 'Codex sleeve' }}</span>
               <code :title="identity.sleeve.thread_id">{{ identity.sleeve.thread_id.slice(-8) }}</code>
+              <ResumeCommand :sleeve="identity.sleeve" />
             </template>
             <span v-else class="muted">No sleeve assigned</span>
           </td>

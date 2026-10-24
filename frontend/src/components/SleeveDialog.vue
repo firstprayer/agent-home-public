@@ -2,6 +2,7 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {api, identityPath} from '../api.js';
 import Modal from './Modal.vue';
+import ResumeCommand from './ResumeCommand.vue';
 
 const props = defineProps({identity: {type: Object, required: true}, identities: {type: Array, required: true}, defaultSocket: String, allowedFolders: {type: Array, default: () => []}});
 const emit = defineEmits(['close', 'saved']);
@@ -135,6 +136,7 @@ onBeforeUnmount(() => request?.abort());
         <select id="sleeve-kind" v-model="kind"><option value="codex">Codex root agent</option><option value="admin_app" :disabled="Boolean(adminOwner)">AdminAppSleeve{{ adminOwner ? ` · Assigned to ${adminOwner}` : '' }}</option></select>
         <p v-if="kind === 'admin_app'" class="policy-help">Built-in administration. No Codex process required. Commands: /help, /list, /kill &lt;agent name&gt;. Only one identity can hold this sleeve. It shares the Agent Home server's availability.</p>
         <template v-else>
+        <ResumeCommand v-if="identity.sleeve?.kind === 'codex'" :sleeve="identity.sleeve" />
         <div v-if="identity.sleeve_process && !creating" class="saved-sleeve">
           <strong>Current saved session</strong>
           <code>{{ identity.sleeve.thread_id }}</code>

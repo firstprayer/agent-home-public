@@ -171,6 +171,51 @@ class SettingsAndCreationTests(unittest.IsolatedAsyncioTestCase):
             await restored.create_sleeve(str(self.folder),nonce)
         restored.client.assert_not_called()
 
+    async def test_management_is_rechecked_after_rpc_and_before_initialization_or_worker_launch(self):
+        for revoked_at in ("client", "thread/start", "turn/start", "thread/resume"):
+            with self.subTest(revoked_at=revoked_at):
+                permitted = True
+                def check():
+                    if not permitted:
+                        raise ValueError("Management access revoked")
+                rpc = AsyncMock()
+                async def request(method, params):
+                    nonlocal permitted
+                    if method == revoked_at:
+                        permitted = False
+                    if method == "thread/start":
+                        return {'approvalPolicy':'never','sandbox':{'type':'dangerFullAccess'},
+                            'thread':{'id':THREAD,'source':'appServer','cwd':str(self.folder)}}
+                    if method == "turn/start":
+                        return {'turn': {'id': 'initial'}}
+                    return {}
+                async def client(socket):
+                    nonlocal permitted
+                    if revoked_at == "client":
+                        permitted = False
+                    return rpc
+                rpc.request.side_effect = request
+                self.bridge.client = AsyncMock(side_effect=client)
+                nonce = str(uuid.uuid4())
+                with patch('agent_home.service.codex_executable', return_value='/bin/codex'), patch('agent_home.service.start_worker') as worker:
+                    with self.assertRaisesRegex(ValueError, 'revoked'):
+                        await self.bridge.create_sleeve(str(self.folder), nonce, check_authorization=check)
+                    worker.assert_not_called()
+                if revoked_at == "client":
+                    rpc.request.assert_not_called()
+                    self.assertNotIn(nonce, self.store.data['sleeve_launches'])
+                else:
+                    self.assertEqual(Store(self.store.path).data['sleeve_launches'][nonce]['status'], 'unconfirmed')
+                    before = rpc.request.await_count
+                    with self.assertRaisesRegex(ValueError, 'previous launch'):
+                        await self.bridge.create_sleeve(str(self.folder), nonce)
+                    self.assertEqual(rpc.request.await_count, before)
+                methods = [call.args[0] for call in rpc.request.await_args_list]
+                if revoked_at == 'thread/start':
+                    self.assertNotIn('turn/start', methods)
+                if revoked_at == 'turn/start':
+                    self.assertNotIn('thread/resume', methods)
+
     async def test_uncertain_initialization_or_failed_resume_never_launches_or_replays(self):
         root = {'approvalPolicy':'never','sandbox':{'type':'dangerFullAccess'},
             'thread':{'id':THREAD,'source':'appServer','cwd':str(self.folder)}}

@@ -72,11 +72,13 @@ class Bridge:
             self.store.event("Agent Home", "Application settings updated")
             return self.settings()
 
-    async def create_sleeve(self, folder, request_id):
+    async def create_sleeve(self, folder, request_id, *, check_authorization=None):
         if not isinstance(request_id, str):
             raise ValueError("request_id must be a UUID")
         request_id = str(uuid.UUID(request_id))
         async with self.configuration_lock:
+            if check_authorization:
+                check_authorization()
             path = allowed_folder(folder, self.config.sleeve_allowed_folders)
             launches = self.store.data.setdefault("sleeve_launches", {})
             prior = launches.get(request_id)
@@ -90,8 +92,12 @@ class Bridge:
             try:
                 client = await self.client(str(DEFAULT_SOCKET))
             except OSError:
+                if check_authorization:
+                    check_authorization()
                 await asyncio.to_thread(start_daemon, executable)
                 client = await self.client(str(DEFAULT_SOCKET))
+            if check_authorization:
+                check_authorization()
             launch = {"socket_path": str(DEFAULT_SOCKET), "folder": str(path), "status": "starting"}
             launches[request_id] = launch
             self.store.save()
@@ -105,6 +111,8 @@ class Bridge:
                     raise RuntimeError("Codex did not grant the requested --yolo permissions; no CLI process was started")
                 if not is_root_thread(thread) or Path(thread["cwd"]).resolve() != path:
                     raise RuntimeError("Codex did not create a root agent in the requested folder")
+                if check_authorization:
+                    check_authorization()
                 initialized = await client.request("turn/start", {"threadId": thread["id"], "input": [{
                     "type": "text", "text": "Initialize this new Agent Home sleeve. Reply only: Ready. Do not inspect files or run tools; wait for the user's next message."}]})
                 launch["initial_turn_id"] = initialized["turn"]["id"]
@@ -112,6 +120,8 @@ class Bridge:
                 try:
                     async with asyncio.timeout(60):
                         while True:
+                            if check_authorization:
+                                check_authorization()
                             try:
                                 await client.request("thread/resume", {"threadId": thread["id"], "excludeTurns": True})
                                 break
@@ -122,6 +132,8 @@ class Bridge:
                                 await asyncio.sleep(0.2)
                 except asyncio.TimeoutError:
                     raise RuntimeError("Sleeve initialization was not confirmed. Check available root agents before creating another sleeve") from None
+                if check_authorization:
+                    check_authorization()
                 launch.update(await asyncio.to_thread(start_worker, path, thread["id"], str(DEFAULT_SOCKET),
                     executable, self.store.directory/"sleeve-processes"/(thread["id"]+".log")))
             except BaseException:
