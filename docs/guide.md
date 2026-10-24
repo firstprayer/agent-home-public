@@ -11,13 +11,26 @@ allowed sleeve folders live under Settings.
 The host computer must stay awake, online, and running Agent Home. Telegram and
 your configured Codex provider handle their respective communications.
 
+## Codex sign-in and subscriptions
+
+Agent Home connects to your existing Codex runtime and uses the authentication
+already configured there. If you sign in to Codex with ChatGPT subscription
+access, Agent Home does not need another model API key. Your plan's eligibility,
+usage limits and model access still apply. Existing API/provider configurations
+continue to use their own billing.
+
+See [OpenAI's authentication guide](https://developers.openai.com/codex/auth) for
+ChatGPT sign-in and API-key sign-in. BotFather's Telegram bot token is a separate
+credential; it is still required to connect each bot.
+
 ## Run and configure
 
 ### macOS app
 
-Download the [v0.3.2 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2).
-Choose `Agent-Home-0.3.2-macOS-arm64.dmg` for an Apple Silicon Mac. The release
-includes `SHA256SUMS` and the corresponding source code.
+Download the [v0.3.3 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3).
+Choose `Agent-Home-0.3.3-macOS-arm64.dmg` for an Apple Silicon Mac or
+`Agent-Home-0.3.3-macOS-x86_64.dmg` for an Intel Mac. Both require macOS 15 or
+later. The release includes `SHA256SUMS` and the corresponding source code.
 
 Open the DMG, drag **Agent Home** into **Applications**, then open it. A native
 window displays the existing Vue dashboard; there is no localhost address to
@@ -176,6 +189,44 @@ alone cannot recover history that was deleted from Codex.
 Telegram is currently the supported communication provider. Sleeves can use
 Codex root agents or the built-in AdminAppSleeve. Connections can be added, replaced, or disabled without
 changing the agent’s UUID, sleeve, or access policy.
+
+### Create a Telegram bot for an agent
+
+Each agent uses a Telegram **bot**. Your own Telegram account is registered
+separately to control who may send it work.
+
+1. In Telegram, open the verified [@BotFather](https://t.me/BotFather) and send
+   `/newbot`.
+2. Choose the display name people will see, then a unique username ending in
+   `bot`, such as `MyResearchHelperBot`. If it is taken, choose another username.
+3. BotFather returns a bot token. Copy it into Agent Home; treat it as a password.
+   See [Telegram’s creation guide](https://core.telegram.org/bots/features#creating-a-new-bot).
+4. In Agent Home, create or choose an agent identity. Open its communication
+   settings, paste the token, and save. Agent Home verifies the bot and shows its
+   username. Assign an existing Codex sleeve, or create one in an allowed folder.
+5. Open **External Identities → New external identity**, add **your own** Telegram
+   `@username` or numeric user ID, choose **Always allowed**, then save. This grants your account access
+   to current and future agents. Use **Specific agents** for narrower access.
+   An unregistered sender is rejected; creating a bot does not register its owner.
+6. Open the bot in Telegram, press **Start**, then send a short message. Check
+   that Agent Home shows its listener connected and sleeve available. The bot
+   can reply only while the app and its Codex runtime are reachable.
+
+If you do not know your numeric ID and have no username, message your new bot
+once, then find your account under **External Identities → Unregistered senders**.
+Click **Register identity**, choose the policy, and save. That first unregistered
+message is rejected; send your request again after allowing the account.
+
+Repeat bot creation and token binding for each agent that needs its own Telegram
+profile. Register the owner only once. These settings survive normal restarts
+and upgrades because they are stored in the local database.
+
+To customize the profile later, use BotFather’s `/mybots` menu, or `/setname`,
+`/setdescription`, `/setabouttext`, and `/setuserpic` for its name, description,
+bio, and avatar. These Telegram profile settings are independent of the immutable
+Agent Home identity name. See [Telegram’s profile commands](https://core.telegram.org/bots/features#edit-bots).
+
+### Credentials and sender access
 
 Paste the BotFather token directly into the communication dialog. It is stored
 in the private local SQLite database and verified with Telegram `getMe`. When

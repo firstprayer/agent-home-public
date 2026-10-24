@@ -5,15 +5,32 @@ import App from './App.vue';
 afterEach(() => { vi.unstubAllGlobals(); history.replaceState(null, '', '/'); });
 
 describe('public project site', () => {
-  it('offers the versioned macOS download with release checksums and honest platform limits', () => {
+  it('offers separate Apple Silicon and Intel downloads for the same release with clear platform limits', () => {
     const wrapper = mount(App);
     expect(wrapper.get('.download-link').attributes('href')).toBe(
-      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.2/Agent-Home-0.3.2-macOS-arm64.dmg');
+      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-arm64.dmg');
+    expect(wrapper.get('.download-link').text()).toContain('Apple Silicon');
+    expect(wrapper.get('.intel-download-link').attributes('href')).toBe(
+      'https://github.com/firstprayer/agent-home-public/releases/download/v0.3.3/Agent-Home-0.3.3-macOS-x86_64.dmg');
+    expect(wrapper.get('.intel-download-link').text()).toContain('Intel Mac');
     expect(wrapper.get('.release-note a').attributes('href')).toBe(
-      'https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2');
+      'https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3');
     expect(wrapper.get('.release-note').text()).toContain('AGPLv3');
     expect(wrapper.get('.release-note').text()).toContain('Apple Silicon');
     expect(wrapper.get('.build-note').text()).toContain('not Apple notarized');
+    wrapper.unmount();
+  });
+
+  it('shows independent parallel agents and accurately describes existing subscription sign-in', () => {
+    const wrapper = mount(App);
+    expect(wrapper.get('h1').text()).toContain('Codex agents,');
+    expect(wrapper.get('.hero-description').text()).toContain('AFK');
+    expect(wrapper.get('.hero-note').text()).toContain('Keep your computer awake and online.');
+    expect(wrapper.findAll('.desktop-row .status.working')).toHaveLength(2);
+    expect(wrapper.get('.feature-grid').text()).toContain('Run agents in parallel.');
+    const auth = wrapper.findAll('details').find(item => item.get('summary').text().includes('separate model API key'));
+    expect(auth.text()).toContain('ChatGPT subscription access in Codex');
+    expect(auth.text()).toContain('Your plan’s limits still apply.');
     wrapper.unmount();
   });
 
@@ -35,7 +52,7 @@ describe('public project site', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const wrapper = mount(App);
-    expect(wrapper.get('h1').text()).toContain('Talk to yourCodex agent,anywhere.');
+    expect(wrapper.get('h1').text()).toContain('Talk to yourCodex agents,anywhere.');
     expect(wrapper.get('figcaption').text()).toContain('Example workspace');
     expect(wrapper.text()).toContain('uv run --managed-python --group macos-build python packaging/macos/build.py');
     expect(wrapper.text()).toContain('uv run python bridge.py');

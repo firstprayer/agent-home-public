@@ -1,13 +1,14 @@
 # Agent Home
 
-**Talk to your Codex agent, anywhere.**
+**Talk to your Codex agents, anywhere.**
 
-[Download for macOS](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2) ·
+[Download for macOS](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3) ·
 [Website](https://firstprayer.github.io/agent-home-public/) ·
 [User guide](docs/guide.md)
 
 A free, open-source app that connects Telegram to Codex running on your computer.
-Your computer does the work. Your conversation goes with you.
+Your Codex agents are already running. Stay connected while you’re AFK,
+as if you never left.
 
 ![Agent Home desktop with a fictional example workspace](docs/images/workspace.png)
 
@@ -17,8 +18,8 @@ Your computer does the work. Your conversation goes with you.
   from your phone.
 - **Bring more than words.** Send photos, videos, and voice notes; receive local
   image and video attachments. Voice and video decoding use your agent's local tools.
-- **Give every project a home.** Durable identities, separate Telegram bots,
-  replaceable runtime sleeves, and visible connection status.
+- **Run agents in parallel.** Give each project its own Codex session and Telegram
+  bot. Check in on one agent while the others keep working.
 - **Stay in control.** Explicit sender access, local SQLite storage, and recovery
   of saved managed sessions. Create sleeves in configured folders from the Admin
   menu, or copy a complete terminal resume command from the desktop dashboard.
@@ -26,23 +27,25 @@ Your computer does the work. Your conversation goes with you.
 ## Get started
 
 1. Install and sign in to Codex CLI on your computer.
-2. Download the [v0.3.2 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.2),
+2. Download the [v0.3.3 macOS preview](https://github.com/firstprayer/agent-home-public/releases/tag/v0.3.3),
    drag **Agent Home** into Applications, then open it. Python and Node are not
    required for the download.
 3. Follow **Get started** in the app: create an identity, assign a Codex sleeve,
-   connect a BotFather token, and allow your Telegram account in **External Identities**.
+   connect a [Telegram bot](docs/guide.md#create-a-telegram-bot-for-an-agent),
+   and allow your Telegram account in **External Identities**.
 4. Open your bot in Telegram and send your first message.
 
-The DMG supports **Apple Silicon Macs on macOS 15 or later**. It is ad-hoc signed
-and **not Apple notarized**; if macOS blocks it, review the release and follow
+Separate DMGs support **Apple Silicon and Intel Macs on macOS 15 or later**.
+They are ad-hoc signed and **not Apple notarized**; if macOS blocks it, review the release and follow
 [Apple's Open Anyway instructions](https://support.apple.com/en-us/102445).
 The download page includes SHA-256 checksums.
 
-Keep your computer awake, online, and running Agent Home. Bring your own Codex
-account and Telegram bot; model-provider charges remain separate. Incoming files
+Keep your computer awake, online, and running Agent Home. Use your existing Codex
+sign-in: ChatGPT subscription access needs no extra model API key in Agent Home.
+Plan limits and any configured provider charges still apply. Incoming files
 are limited to 20 MB. The app has no automatic updater or login startup.
 
-Intel Mac users can [build from source](docs/development.md#macos-packaging).
+You can also [build from source](docs/development.md#macos-packaging).
 The Python server also [runs on Linux](docs/guide.md#command-line).
 Windows support is planned.
 
