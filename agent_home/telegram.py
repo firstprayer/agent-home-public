@@ -81,13 +81,13 @@ class TelegramClient:
             form.add_field(field, stream, filename=filename, content_type=mime)
             return await self.request(identity, "send" + field.title(), data=form)
         try:
-            with open_media(media) as (stream, kind, mime):
+            with open_media(media, allow_external=identity.allow_external_media) as (stream, kind, mime):
                 return await upload(stream, kind, mime)
         except TelegramAPIError as error:
             if error.code != 400 or kind == "document":
                 raise
             # Telegram may reject a valid file's dimensions or codec for inline display.
-            with open_media(media) as (stream, _, mime):
+            with open_media(media, allow_external=identity.allow_external_media) as (stream, _, mime):
                 return await upload(stream, "document", mime)
 
     async def request(self, identity, method, **body):

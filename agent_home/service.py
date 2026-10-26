@@ -226,10 +226,12 @@ class Bridge:
         candidate.bot_id, candidate.username = me["id"], me["username"]
         return candidate
 
-    async def create_identity(self, name, settings=None, *, check_authorization=None):
+    async def create_identity(self, name, settings=None, *, allow_external_media=True, check_authorization=None):
         if not isinstance(name, str) or not name.strip() or len(name.strip()) > 80:
             raise ValueError("Use an identity name of 1–80 characters")
         name = name.strip()
+        if type(allow_external_media) is not bool:
+            raise ValueError("allow_external_media must be a boolean")
         async with self.configuration_lock:
             if check_authorization:
                 check_authorization()
@@ -238,14 +240,16 @@ class Bridge:
             telegram = await self.verify_telegram(name, settings)
             if check_authorization:
                 check_authorization()
-            identity = AgentIdentity(name, telegram)
+            identity = AgentIdentity(name, telegram, allow_external_media=allow_external_media)
             self.store.add_identity(identity)
             self.store.event(name, "Agent identity created")
             if telegram:
                 self.start_poller(name)
             return identity
 
-    async def configure_communication(self, name, settings, *, check_authorization=None):
+    async def configure_communication(self, name, settings, *, allow_external_media=..., check_authorization=None):
+        if allow_external_media is not ... and type(allow_external_media) is not bool:
+            raise ValueError("allow_external_media must be a boolean")
         async with self.configuration_lock, self.locks.setdefault(name, asyncio.Lock()):
             if check_authorization:
                 check_authorization()
@@ -269,6 +273,8 @@ class Bridge:
                         self.start_poller(name)
                     raise
             self.store.data["identities"][name]["telegram"] = dataclasses.asdict(telegram) if telegram else None
+            if allow_external_media is not ...:
+                self.store.data["identities"][name]["allow_external_media"] = allow_external_media
             if changed_bot:
                 # A new bot must never deliver the previous bot's queued private messages.
                 self.store.data["pending_users"].pop(name, None)
@@ -838,6 +844,7 @@ class Bridge:
             await asyncio.sleep(0.2)
 
     async def deliver_entry(self, identity, entry):
+        identity = self.identity(identity.name)
         if entry not in self.store.data["outbox"] or entry["chat_id"] not in self.recipient_chat_ids(identity.name):
             return
         if not self.admin.menu.deliverable(identity, entry):

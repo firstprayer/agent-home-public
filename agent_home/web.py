@@ -58,6 +58,7 @@ def create_app(store, config=None, config_path=None, database_locks=None):
                 telegram.pop("token")
             sleeve = dataclasses.asdict(identity.sleeve) if identity.sleeve else None
             identities.append({"id": identity.id, "name": name, "telegram": telegram,
+                "allow_external_media": identity.allow_external_media,
                 "sleeve": sleeve, "binding": sleeve,
                 "sleeve_process": bridge.sleeve_process(name),
                 "runtime": bridge.sleeve_status.get(name, {"status": "ready" if bridge.is_admin(name) else "checking" if sleeve else "unassigned"}),
@@ -75,9 +76,10 @@ def create_app(store, config=None, config_path=None, database_locks=None):
 
     async def add_identity(request):
         body = await request.json()
-        if set(body) - {"name", "telegram"}:
+        if set(body) - {"name", "telegram", "allow_external_media"}:
             raise ValueError("Unknown identity settings")
-        identity = await bridge.create_identity(body["name"], body.get("telegram"))
+        identity = await bridge.create_identity(body["name"], body.get("telegram"),
+                                               allow_external_media=body.get("allow_external_media", True))
         return web.json_response({"id": identity.id, "name": identity.name,
             "username": identity.telegram.username if identity.telegram else None,
             "bot_id": identity.telegram.bot_id if identity.telegram else None}, status=201)
@@ -103,9 +105,10 @@ def create_app(store, config=None, config_path=None, database_locks=None):
         name = request.match_info["name"]
         bridge.identity(name)
         body = await request.json()
-        if set(body) - {"telegram"}:
+        if set(body) - {"telegram", "allow_external_media"}:
             raise ValueError("Unknown communication settings")
-        await bridge.configure_communication(name, body.get("telegram", ...))
+        await bridge.configure_communication(name, body.get("telegram", ...),
+                                            allow_external_media=body.get("allow_external_media", ...))
         return web.json_response({"updated": True})
 
     async def settings(request):

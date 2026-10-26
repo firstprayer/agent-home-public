@@ -395,7 +395,12 @@ submission rules as voice notes. Files remain until manually removed.
   and code examples stay text. Telegram work/steering messages are forwarded without
   appended prompts or formatting instructions. Relative paths resolve against
   the originating sleeve's working folder; absolute paths and local `file://`
-  links must also stay inside that folder. Repeated references in one reply
+  links may point to other local folders by default. In the agent's **Settings**,
+  turn off **Allow attachments outside the working folder** to restrict that
+  identity to its originating sleeve's workspace. New and migrated identities
+  default to allowing external media. The setting survives sleeve and Telegram
+  changes and is checked again before uploading queued attachments. This does
+  not change Codex permissions or where incoming files are saved. Repeated references in one reply
   produce one attachment per recipient.
 - JPEG, PNG, and WebP use photo messages; GIF uses animation; MP4/M4V use video.
   MOV, WebM, MKV, and AVI arrive as file attachments. If Telegram rejects inline
@@ -407,7 +412,9 @@ submission rules as voice notes. Files remain until manually removed.
   uploading. Missing, invalid, oversized, or permanently rejected media sends
   a warning to the same Telegram recipient with its path and reason. Oversize
   warnings include the actual file size and upload limit. Uploads recheck current
-  recipient access and validate the file type and workspace boundary. Symlinks and remote URLs are
+  recipient access, the current agent's attachment setting, and the file type.
+  Workspace restrictions use the folder captured when the reply was queued.
+  Symlinks and remote URLs are
   never uploaded automatically. Uploaded audio documents are not handled yet;
   Telegram voice notes follow the file-based flow above.
 - Agent replies go to allowed participants in that turn. All participants share

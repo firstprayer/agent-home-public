@@ -9,14 +9,15 @@ const busy = ref(false);
 const error = ref('');
 const form = reactive({
   name: '', method: props.identity?.telegram || props.connectTelegram ? 'telegram' : 'none', token: '',
+  allowExternalMedia: props.identity?.allow_external_media ?? true,
 });
-const title = computed(() => props.identity ? `Communication · ${props.identity.name}` : 'New identity');
+const title = computed(() => props.identity ? `Agent settings · ${props.identity.name}` : 'New identity');
 
 async function save() {
   if (busy.value) return;
   busy.value = true;
   error.value = '';
-  const body = {};
+  const body = {allow_external_media: form.allowExternalMedia};
   if (form.method === 'none') body.telegram = null;
   else if (form.token.trim()) body.telegram = {token: form.token.trim()};
   try {
@@ -33,7 +34,7 @@ async function save() {
 
 <template>
   <Modal :title="title" eyebrow="AGENT IDENTITY" :busy="busy" :error="error" @close="emit('close')">
-    <p class="muted">{{ identity ? 'Manage how this identity receives messages. Its identity and sleeve stay in place.' : 'Create a lasting identity. You can assign a sleeve later.' }}</p>
+    <p class="muted">{{ identity ? 'Manage communication and attachment access for this identity.' : 'Create a lasting identity. You can assign a sleeve later.' }}</p>
     <form @submit.prevent="save">
       <fieldset :disabled="busy">
         <template v-if="!identity"><label for="identity-name">Name</label><input id="identity-name" v-model="form.name" maxlength="80" required autocomplete="off" placeholder="e.g. Research partner"></template>
@@ -46,6 +47,8 @@ async function save() {
           <div class="form-tip"><strong>Need a bot?</strong><p>Open <a href="https://t.me/BotFather" rel="noreferrer">BotFather</a>, send <code>/newbot</code>, then paste the token it gives you here. Register your own Telegram account in External Identities to allow messages through.</p></div>
         </template>
         <p class="policy-help">Sender access is managed in External Identities.</p>
+        <label class="checkbox-label" for="allow-external-media"><input id="allow-external-media" v-model="form.allowExternalMedia" type="checkbox" aria-describedby="external-media-help">Allow attachments outside the working folder</label>
+        <small id="external-media-help">Agent replies may send local images and videos from other folders. Turn off to limit attachments to the sleeve's working folder. File type, size, and symlink checks still apply.</small>
         <div class="dialog-actions"><button type="button" class="secondary" @click="emit('close')">Cancel</button><button type="submit">{{ busy ? 'Saving…' : identity ? 'Save changes' : 'Create identity' }}</button></div>
       </fieldset>
     </form>

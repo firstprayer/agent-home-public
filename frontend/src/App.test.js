@@ -114,7 +114,8 @@ describe('identity and communication dialogs', () => {
     expect(wrapper.find('textarea').exists()).toBe(false);
     await wrapper.get('#identity-name').setValue('Independent');
     await wrapper.get('form').trigger('submit');
-    expect(api).toHaveBeenCalledWith('/api/identities', {name: 'Independent', telegram: null});
+    expect(wrapper.get('#allow-external-media').element.checked).toBe(true);
+    expect(api).toHaveBeenCalledWith('/api/identities', {name: 'Independent', telegram: null, allow_external_media: true});
     expect(wrapper.emitted('saved')).toHaveLength(1);
   });
 
@@ -126,7 +127,18 @@ describe('identity and communication dialogs', () => {
     expect(wrapper.get('#bot-token').element.value).toBe('');
     expect(wrapper.find('textarea').exists()).toBe(false);
     await wrapper.get('form').trigger('submit');
-    expect(api).toHaveBeenCalledWith('/api/identities/Research%20partner/communication', {});
+    expect(api).toHaveBeenCalledWith('/api/identities/Research%20partner/communication', {allow_external_media: true});
+  });
+
+  it('loads an identity attachment preference and saves changes without replacing its token', async () => {
+    api.mockResolvedValue({});
+    const wrapper = mount(IdentityDialog, {props: {identity: identity({allow_external_media:false, telegram:{username:'ResearchBot'}})}});
+    expect(wrapper.get('#allow-external-media').element.checked).toBe(false);
+    await wrapper.get('form').trigger('submit');
+    expect(api).toHaveBeenLastCalledWith('/api/identities/Research%20partner/communication', {allow_external_media:false});
+    await wrapper.get('#allow-external-media').setValue(true);
+    await wrapper.get('form').trigger('submit');
+    expect(api).toHaveBeenLastCalledWith('/api/identities/Research%20partner/communication', {allow_external_media:true});
   });
 
   it('requires a token for a new connection and retains input after a failed save', async () => {

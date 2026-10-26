@@ -38,7 +38,7 @@ const statuses = {active: 'Working', ready: 'Ready', idle: 'Idle', unassigned: '
           </td>
           <td class="row-actions">
             <button class="quiet" :aria-label="`Manage sleeve for ${identity.name}`" @click="$emit('sleeve', identity)">{{ identity.sleeve ? 'Change sleeve' : 'Assign sleeve' }}</button>
-            <button class="quiet" :aria-label="`Communication settings for ${identity.name}`" @click="$emit('communication', identity)">Settings</button>
+            <button class="quiet" :aria-label="`Agent settings for ${identity.name}`" @click="$emit('communication', identity)">Settings</button>
           </td>
         </tr>
       </tbody>
