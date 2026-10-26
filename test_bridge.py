@@ -849,7 +849,7 @@ class FormattingTests(unittest.TestCase):
                     self.assertEqual(json.loads(connection.execute("SELECT allow_rules FROM identities WHERE name = 'Old'").fetchone()[0]), old_rules)
                 self.assertEqual(Store(database).external_identity(owner.id), owner)
                 with upgraded.connect() as connection:
-                    self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 5)
+                    self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 6)
                     self.assertNotIn("allow_rules", {row["name"] for row in connection.execute("PRAGMA table_info(identities)")})
                     self.assertEqual(connection.execute("SELECT COUNT(*) FROM external_identities").fetchone()[0], 2)
 

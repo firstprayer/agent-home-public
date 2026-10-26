@@ -16,7 +16,9 @@ Your computer does the work. Your conversation goes with you.
 - **Continue the same session.** Message or steer your existing Codex root session
   from your phone.
 - **Bring more than words.** Send photos, videos, and voice notes; receive local
-  image and video attachments. Voice and video decoding use your agent's local tools.
+  image and video attachments, including files outside the working folder by
+  default. Each identity can restrict attachments to its workspace in its agent settings.
+  Voice and video decoding use your agent's local tools.
 - **Give every project a home.** Durable identities, separate Telegram bots,
   replaceable runtime sleeves, and visible connection status.
 - **Stay in control.** Explicit sender access, local SQLite storage, and recovery

@@ -120,3 +120,8 @@ class AgentIdentity:
     telegram: TelegramIdentity | None = None
     id: str = dataclasses.field(default_factory=lambda: str(uuid.uuid4()))
     sleeve: AgentSleeve | AdminAppSleeve | None = None
+    allow_external_media: bool = True
+
+    def __post_init__(self):
+        if type(self.allow_external_media) is not bool:
+            raise ValueError("allow_external_media must be a boolean")

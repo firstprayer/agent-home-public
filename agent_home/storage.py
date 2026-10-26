@@ -16,7 +16,8 @@ from .utils import TOKEN_PATTERN, write_private
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS identities (
-    name TEXT PRIMARY KEY, id TEXT NOT NULL UNIQUE, telegram TEXT NOT NULL
+    name TEXT PRIMARY KEY, id TEXT NOT NULL UNIQUE, telegram TEXT NOT NULL,
+    allow_external_media INTEGER NOT NULL DEFAULT 1 CHECK (allow_external_media IN (0, 1))
 );
 CREATE TABLE IF NOT EXISTS sleeves (
     identity_name TEXT PRIMARY KEY REFERENCES identities(name),
@@ -93,15 +94,16 @@ class Store:
         os.chmod(self.path, 0o600)
         with self.connect() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in {0, 1, 2, 3, 4, 5}:
+            if version not in {0, 1, 2, 3, 4, 5, 6}:
                 raise ValueError("Unsupported database version; refusing to overwrite it")
             if version:
                 self.data = self.load(connection, version)
-                if version < 5:
+                if version < 6:
                     if version < 4:
                         self.migrate_token_files()
                         self.migrate_external_identities()
-                    suffix = ".before-admin-sleeve.sqlite3" if version == 4 else ".before-external-identities.sqlite3"
+                    suffix = (".before-external-media.sqlite3" if version == 5 else
+                              ".before-admin-sleeve.sqlite3" if version == 4 else ".before-external-identities.sqlite3")
                     backup = self.path.with_name(self.path.stem + suffix)
                     if not backup.exists():
                         temp = backup.with_suffix(".sqlite3.tmp")
@@ -271,7 +273,8 @@ class Store:
                 "pending_users": {}, "turn_recipients": {}, "seen_items": [], "events": [],
                 "inbox": [], "outbox": []}
         for row in connection.execute("SELECT * FROM identities ORDER BY rowid"):
-            data["identities"][row["name"]] = {"id": row["id"], "telegram": json.loads(row["telegram"])}
+            data["identities"][row["name"]] = {"id": row["id"], "telegram": json.loads(row["telegram"]),
+                "allow_external_media": bool(row["allow_external_media"]) if version >= 6 else True}
             if version < 4:
                 data["communication_rules"][row["name"]] = json.loads(row["allow_rules"])
         for row in connection.execute("SELECT * FROM sleeves"):
@@ -310,10 +313,12 @@ class Store:
                     connection.execute("DROP TABLE sleeves_before_admin")
                 if any(row["name"] == "allow_rules" for row in connection.execute("PRAGMA table_info(identities)")):
                     connection.execute("ALTER TABLE identities DROP COLUMN allow_rules")
+                if not any(row["name"] == "allow_external_media" for row in connection.execute("PRAGMA table_info(identities)")):
+                    connection.execute("ALTER TABLE identities ADD COLUMN allow_external_media INTEGER NOT NULL DEFAULT 1 CHECK (allow_external_media IN (0, 1))")
             for table in ("external_identity_agents", "external_identities", "sleeves", "inbox", "outbox", "identities", "runtime_state"):
                 connection.execute(f"DELETE FROM {table}")
-            connection.executemany("INSERT INTO identities VALUES (?, ?, ?)", [
-                (name, record["id"], json.dumps(record.get("telegram")))
+            connection.executemany("INSERT INTO identities (name, id, telegram, allow_external_media) VALUES (?, ?, ?, ?)", [
+                (name, record["id"], json.dumps(record.get("telegram")), int(record.get("allow_external_media", True)))
                 for name, record in self.data["identities"].items()])
             connection.executemany("INSERT INTO external_identities VALUES (?, ?, ?, ?, ?)", [
                 (record["id"], record["provider"], record["user_id"], record["username"], record["communication_policy"]["mode"])
@@ -334,7 +339,7 @@ class Store:
             connection.executemany("INSERT INTO runtime_state VALUES (?, ?)", [
                 (key, json.dumps(self.data[key]))
                 for key in ("pending_users", "turn_recipients", "seen_items", "events", "sleeve_launches", "sleeve_initializations") if key in self.data])
-            connection.execute("PRAGMA user_version = 5")
+            connection.execute("PRAGMA user_version = 6")
 
     def event(self, name, message):
         self.data["events"].append({"time": time.time(), "identity": name, "message": message})
@@ -351,13 +356,15 @@ class Store:
         sleeve = self.data["sleeves"].get(name)
         return AgentIdentity(name=name, id=record["id"],
             telegram=TelegramIdentity(**record["telegram"]) if record.get("telegram") else None,
+            allow_external_media=record.get("allow_external_media", True),
             sleeve=(AdminAppSleeve() if sleeve.get("kind") == "admin_app" else AgentSleeve(**sleeve)) if sleeve else None)
 
     def add_identity(self, identity):
         if not identity.name or len(identity.name) > 80 or identity.name in self.data["identities"]:
             raise ValueError("Use a new identity name of 1–80 characters")
         self.data["identities"][identity.name] = {
-            "id": identity.id, "telegram": dataclasses.asdict(identity.telegram) if identity.telegram else None}
+            "id": identity.id, "telegram": dataclasses.asdict(identity.telegram) if identity.telegram else None,
+            "allow_external_media": identity.allow_external_media}
         self.save()
 
     def external_identities(self):

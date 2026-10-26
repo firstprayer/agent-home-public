@@ -90,6 +90,29 @@ class MediaTests(unittest.TestCase):
             self.assertEqual((stream.read(), kind, mime), (PNG, "photo", "image/png"))
         self.assertTrue(stream.closed)
 
+    def test_external_files_can_be_allowed_without_following_symlinks_or_skipping_content_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            outside = Path(directory).resolve()
+            path = outside / 'image.png'
+            path.write_bytes(PNG)
+            media = {'path':str(path), 'root':str(self.root)}
+            with self.assertRaisesRegex(MediaError, 'does not allow attachments outside'):
+                with open_media(media):
+                    self.fail('External attachment opened without permission')
+            with open_media(media, allow_external=True) as (stream, _, _):
+                self.assertEqual(stream.read(), PNG)
+            (outside / 'link.png').symlink_to(path)
+            (outside / 'linked-folder').symlink_to(outside, target_is_directory=True)
+            os.mkfifo(outside / 'pipe.png')
+            for unsafe in (outside/'link.png', outside/'linked-folder/image.png', outside/'pipe.png'):
+                with self.subTest(path=unsafe), self.assertRaises(MediaError):
+                    with open_media({'path':str(unsafe), 'root':str(self.root)}, allow_external=True):
+                        self.fail('Unsafe external attachment opened')
+            path.write_text('Not an image')
+            with self.assertRaisesRegex(MediaError, 'contents'):
+                with open_media(media, allow_external=True):
+                    self.fail('Invalid external content opened')
+
     def test_paths_missing_files_symlinks_and_special_files_are_rejected(self):
         outside = self.root.parent / "outside.png"
         (self.root / "real.png").write_bytes(PNG)
@@ -213,6 +236,48 @@ class MediaRelayTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("media", Store(self.database).data["outbox"][1])
         self.bridge.telegram.assert_not_called()
 
+    async def test_queued_external_media_uses_current_agent_preference_after_restart_and_reassignment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / 'download.png'
+            path.write_bytes(PNG)
+            self.bridge.add_turn_recipient('Creator', 'external-turn', 42)
+            self.bridge.relay_item('Creator', 'external-turn', {'id':'external-answer','text':f'![Download]({path})'})
+            entry = self.store.data['outbox'][-1]
+            async def send(identity, media, **kwargs):
+                with open_media(media, allow_external=identity.allow_external_media) as (stream, _, _):
+                    self.assertEqual(stream.read(), PNG)
+            self.bridge.telegram.send_media.side_effect = send
+            await self.bridge.deliver_entry(self.identity, entry)
+            self.bridge.telegram.send_media.assert_awaited_once()
+            self.store.data['identities']['Creator']['allow_external_media'] = False
+            self.store.data['sleeves']['Creator']['cwd'] = '/replacement/workspace'
+            self.store.save()
+            restarted = Bridge(Store(self.database))
+            self.addAsyncCleanup(restarted.telegram.close)
+            restarted.telegram = self.bridge.telegram
+            self.bridge.telegram.reset_mock()
+            queued = restarted.store.data['outbox'][-1]
+            await restarted.deliver_entry(self.identity, queued)
+            self.assertNotIn('media', queued)
+            self.assertIn('does not allow attachments outside', queued['text'])
+            self.assertEqual(self.bridge.telegram.call_args.kwargs['chat_id'], 42)
+            self.assertEqual(Store(self.database).data['outbox'][-1], queued)
+
+    async def test_enabling_external_media_applies_to_already_queued_jobs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / 'download.png'
+            path.write_bytes(PNG)
+            self.store.data['identities']['Creator']['allow_external_media'] = False
+            self.store.save()
+            old_identity = self.store.identity('Creator')
+            self.bridge.relay_item('Creator', 'external-turn', {'id':'external-answer','text':f'[[attach:{path}]]'})
+            self.store.data['identities']['Creator']['allow_external_media'] = True
+            self.store.save()
+            entry = self.store.data['outbox'][-1]
+            await self.bridge.deliver_entry(old_identity, entry)
+            self.assertTrue(self.bridge.telegram.send_media.await_args.args[0].allow_external_media)
+
+
 
 class TelegramUploadTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -261,6 +326,17 @@ class TelegramUploadTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(method, "/send" + field.title())
             self.assertEqual(data["chat_id"][2], b"42")
             self.assertEqual(data[field], (filename, FORMATS[Path(filename).suffix][1], content))
+
+    async def test_external_upload_defaults_to_allowed_and_explicit_restriction_prevents_transport(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / 'download.png'
+            path.write_bytes(PNG)
+            media = {'path':str(path), 'root':str(self.root)}
+            await self.telegram.send_media(self.identity, media, chat_id=42)
+            self.assertEqual(self.received[-1][1]['photo'][2], PNG)
+            with self.assertRaisesRegex(MediaError, 'does not allow attachments outside'):
+                await self.telegram.send_media(dataclasses.replace(self.identity, allow_external_media=False), media, chat_id=42)
+            self.assertEqual(len(self.received), 1)
 
     async def test_inline_rejection_reopens_file_and_falls_back_to_document(self):
         self.results = [{"ok": False, "error_code": 400, "description": "Invalid dimensions"}]

@@ -49,6 +49,7 @@ class SettingsAndCreationTests(unittest.IsolatedAsyncioTestCase):
             'sleeve_allowed_folders': folders if folders is not None else [str(self.root/'projects')]}
 
     async def test_database_moves_without_losing_queued_work_and_old_copy_survives(self):
+        self.store.data['identities']['Existing']['allow_external_media'] = False
         self.store.data['inbox'] = [{'id':'receipt','identity':'Existing','status':'received','message':{'text':'pending'}}]
         self.store.data['outbox'] = [{'identity':'Existing','text':'reply','chat_id':123}]
         self.store.data['sleeve_launches'] = {'nonce':{'thread_id':THREAD,'status':'starting'}}

@@ -1,4 +1,4 @@
-"""Local media references and workspace-bounded file access."""
+"""Local media references and checked, optional workspace-bounded file access."""
 
 import contextlib
 import os
@@ -75,12 +75,17 @@ def media_references(text, cwd):
 
 
 @contextlib.contextmanager
-def open_media(media):
-    """Open regular files without following symlinks beneath the captured workspace."""
+def open_media(media, *, allow_external=False):
+    """Open regular files without following symlinks, applying the agent's boundary."""
     try:
-        root = Path(media["root"]).resolve(strict=True)
         path = Path(media["path"])
-        relative = path.relative_to(root)
+        if not path.is_absolute():
+            raise MediaError("Attachment path must be absolute")
+        root = Path(path.anchor) if allow_external else Path(media["root"]).resolve(strict=True)
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            raise MediaError("This agent does not allow attachments outside its working folder") from None
         if ".." in relative.parts or not relative.parts:
             raise MediaError("File is outside the originating sleeve's workspace")
         with contextlib.ExitStack() as stack:
@@ -109,7 +114,7 @@ def open_media(media):
     except MediaError:
         raise
     except (OSError, ValueError, KeyError) as error:
-        raise MediaError("File is missing, unreadable, outside the workspace, or uses a symlink") from error
+        raise MediaError("File is missing, unreadable, or uses a symlink") from error
 
 
 def matches_media_header(header, mime):
