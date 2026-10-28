@@ -19,6 +19,7 @@ from agent_home.telegram import TelegramAPIError, TelegramClient
 
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"test image bytes"
+JPEG = b"\xff\xd8\xff\xe0" + b"test JPEG bytes"
 MP4 = b"\x00\x00\x00\x18ftypmp42" + b"test video bytes"
 TOKEN = "123456789:" + "t" * 35
 
@@ -90,6 +91,44 @@ class MediaTests(unittest.TestCase):
             self.assertEqual((stream.read(), kind, mime), (PNG, "photo", "image/png"))
         self.assertTrue(stream.closed)
 
+    def test_supported_contents_override_a_wrong_extension_without_changing_the_file(self):
+        examples = [('screenshot.png', JPEG, 'photo', 'image/jpeg'),
+                    ('image.webm', PNG, 'photo', 'image/png'),
+                    ('animation.jpg', b'GIF89a' + b'test GIF bytes', 'animation', 'image/gif'),
+                    ('video.png', MP4, 'video', 'video/mp4')]
+        for filename, content, expected_kind, expected_mime in examples:
+            with self.subTest(filename=filename):
+                path = self.root / filename
+                path.write_bytes(content)
+                with open_media({'path':str(path), 'root':str(self.root)}) as (stream, kind, mime):
+                    self.assertEqual((stream.read(), kind, mime), (content, expected_kind, expected_mime))
+                self.assertEqual(path.read_bytes(), content)
+
+    def test_compatible_container_extensions_keep_their_existing_delivery_type(self):
+        for filename, content, mime in (('clip.mov', MP4, 'video/quicktime'),
+                                        ('clip.mkv', b'\x1aE\xdf\xa3', 'video/x-matroska')):
+            with self.subTest(filename=filename):
+                path = self.root / filename
+                path.write_bytes(content)
+                with open_media({'path':str(path), 'root':str(self.root)}) as (_, kind, actual_mime):
+                    self.assertEqual((kind, actual_mime), ('document', mime))
+
+    def test_upload_size_limit_uses_detected_content_instead_of_the_extension(self):
+        for filename, header, allowed in (('image.webm', JPEG, False), ('video.png', MP4, True)):
+            with self.subTest(filename=filename):
+                path = self.root / filename
+                with path.open('wb') as stream:
+                    stream.write(header)
+                    stream.truncate(11_000_000)
+                media = {'path':str(path), 'root':str(self.root)}
+                if allowed:
+                    with open_media(media) as (_, kind, mime):
+                        self.assertEqual((kind, mime), ('video', 'video/mp4'))
+                else:
+                    with self.assertRaisesRegex(MediaError, '10 MB upload limit'):
+                        with open_media(media):
+                            self.fail('Photo limit was bypassed with a video extension')
+
     def test_external_files_can_be_allowed_without_following_symlinks_or_skipping_content_checks(self):
         with tempfile.TemporaryDirectory() as directory:
             outside = Path(directory).resolve()
@@ -134,9 +173,10 @@ class MediaTests(unittest.TestCase):
             with self.assertRaises(MediaError):
                 with open_media({"path": str(path), "root": str(self.root)}):
                     self.fail("Invalid content opened")
-        for suffix, size in ((".png", 10), (".mp4", 50)):
+        for suffix, size, header in ((".png", 10, PNG), (".mp4", 50, MP4)):
             path = self.root / ("large" + suffix)
             with path.open("wb") as stream:
+                stream.write(header)
                 stream.truncate(size * 1024 * 1024 + 1)
             with self.assertRaisesRegex(MediaError, "upload limit"):
                 with open_media({"path": str(path), "root": str(self.root)}):
@@ -343,6 +383,25 @@ class TelegramUploadTests(unittest.IsolatedAsyncioTestCase):
         await self.send("image.png", PNG)
         self.assertEqual([method for method, _ in self.received], ["/sendPhoto", "/sendDocument"])
         self.assertEqual(self.received[-1][1]["document"][2], PNG)
+
+    async def test_mislabeled_jpeg_uses_correct_mime_and_filename_in_photo_and_fallback_uploads(self):
+        for fallback in (False, True):
+            with self.subTest(fallback=fallback):
+                self.received.clear()
+                self.results = [{'ok':False,'error_code':400,'description':'Invalid dimensions'}] if fallback else []
+                await self.send('screenshot.png', JPEG)
+                self.assertEqual(self.received[0][0], '/sendPhoto')
+                self.assertEqual(len(self.received), 2 if fallback else 1)
+                for method, data in self.received:
+                    field = 'photo' if method == '/sendPhoto' else 'document'
+                    self.assertEqual(data[field], ('screenshot.jpg', 'image/jpeg', JPEG))
+                self.assertEqual((self.root / 'screenshot.png').read_bytes(), JPEG)
+                self.assertFalse((self.root / 'screenshot.jpg').exists())
+
+    async def test_unrecognized_contents_never_reach_the_upload_transport(self):
+        with self.assertRaisesRegex(MediaError, 'contents do not match'):
+            await self.send('invalid.png', b'plain text disguised as an image')
+        self.assertEqual(self.received, [])
 
     async def test_rate_limits_do_not_trigger_document_fallback(self):
         self.results = [{"ok": False, "error_code": 429, "description": "Retry later"}]

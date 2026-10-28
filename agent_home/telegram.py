@@ -7,7 +7,7 @@ import re
 import aiohttp
 
 from .incoming import MAX_MEDIA_BYTES
-from .media import MediaError, open_media
+from .media import FORMATS, MediaError, open_media
 from .utils import TOKEN_PATTERN, safe_error
 from .voice import MAX_VOICE_BYTES, VoiceError
 
@@ -77,7 +77,11 @@ class TelegramClient:
         async def upload(stream, field, mime):
             form = aiohttp.FormData()
             form.add_field("chat_id", str(chat_id))
-            filename = media["path"].rsplit("/", 1)[-1]
+            path = PurePosixPath(media["path"])
+            filename = path.name
+            if FORMATS[path.suffix.lower()][1] != mime:
+                extension = next(extension for extension, (_, known_mime) in FORMATS.items() if known_mime == mime)
+                filename = path.with_suffix(extension).name
             form.add_field(field, stream, filename=filename, content_type=mime)
             return await self.request(identity, "send" + field.title(), data=form)
         try:

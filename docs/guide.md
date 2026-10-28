@@ -403,6 +403,10 @@ submission rules as voice notes. Files remain until manually removed.
   not change Codex permissions or where incoming files are saved. Repeated references in one reply
   produce one attachment per recipient.
 - JPEG, PNG, and WebP use photo messages; GIF uses animation; MP4/M4V use video.
+  Supported file contents take precedence over a mismatched extension: a JPEG
+  named `.png` uploads as JPEG, with a `.jpg` filename. The original file is not
+  renamed or converted. Unrecognized contents are still rejected. When container
+  headers fit multiple formats, a compatible original extension is retained.
   MOV, WebM, MKV, and AVI arrive as file attachments. If Telegram rejects inline
   display because of dimensions or encoding, the relay tries a file attachment.
   Upload limits are 10 MB for photos and 50 MB for videos, animations, and files.
