@@ -97,18 +97,20 @@ def open_media(media, *, allow_external=False):
             descriptor = os.open(relative.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=directory)
             stream = stack.enter_context(os.fdopen(descriptor, "rb"))
             info = os.fstat(stream.fileno())
-            kind, mime = FORMATS[path.suffix.lower()]
             if not stat.S_ISREG(info.st_mode):
                 raise MediaError("Attachment is not a regular file")
-            limit_mb = 10 if kind == "photo" else 50
             if info.st_size == 0:
                 raise MediaError("Attachment is empty")
+            header = stream.read(32)
+            # Prefer the declared type for ambiguous containers, then inspect supported formats.
+            for kind, mime in [FORMATS[path.suffix.lower()], *FORMATS.values()]:
+                if matches_media_header(header, mime):
+                    break
+            else:
+                raise MediaError("File contents do not match a supported image or video")
+            limit_mb = 10 if kind == "photo" else 50
             if info.st_size > limit_mb * 1_000_000:
                 raise MediaError(f"Attachment is {info.st_size / 1_000_000:.1f} MB and exceeds Telegram's {limit_mb} MB upload limit; send a smaller copy")
-            header = stream.read(32)
-            valid = matches_media_header(header, mime)
-            if not valid:
-                raise MediaError("File contents do not match a supported image or video")
             stream.seek(0)
             yield stream, kind, mime
     except MediaError:
