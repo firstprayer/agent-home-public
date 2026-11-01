@@ -1,5 +1,7 @@
 """Private, workspace-local voice attachments for the assigned agent to decode."""
 
+import os
+
 from .media import save_attachment
 
 
@@ -16,7 +18,12 @@ def save_voice(cwd, job_id, audio, mime_type=None):
     if not 0 < len(audio) <= MAX_VOICE_BYTES:
         raise VoiceError("Voice recording is empty or exceeds the 20 MB download limit")
     extension = {"audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/mp4": ".m4a"}.get(mime_type, ".ogg")
-    return save_attachment(cwd, job_id, audio, "voice", extension)
+    try:
+        return save_attachment(cwd, job_id, audio, "voice", extension)
+    except OSError as error:
+        # Report only OS error descriptions; filenames can contain private information.
+        reason = os.strerror(error.errno) if error.errno is not None else "filesystem error"
+        raise VoiceError(f"The recording was downloaded but could not be saved in the sleeve's working folder ({reason}); check its storage and permissions") from None
 
 
 def voice_instruction(path):
