@@ -578,7 +578,8 @@ class Bridge:
                 text = voice_instruction(job["voice_path"])
             except (VoiceError, TelegramAPIError, ConnectionError, OSError, asyncio.TimeoutError) as error:
                 # Only explicitly safe errors should be shown to the sender.
-                detail = str(error) if isinstance(error, VoiceError) else "The voice recording could not be downloaded or saved; check workspace write access or send text"
+                detail = str(error) if isinstance(error, VoiceError) else "Voice processing could not be completed; check the local dashboard and resend the recording or send text"
+                self.store.event(name, "Voice input rejected before submission: " + detail)
                 reply("Warning: " + detail + ". This instruction was not submitted.")
                 return
         inputs = [{"type": "text", "text": text}] if text else []

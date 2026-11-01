@@ -48,7 +48,14 @@ class TelegramClient:
             if type(size) is not int or not 0 < size <= limit:
                 raise error_type("Attachment is empty or exceeds Telegram's 20 MB download limit")
         check_size(file)
-        metadata = await self(identity, "getFile", file_id=file["file_id"])
+        try:
+            metadata = await self(identity, "getFile", file_id=file["file_id"])
+        except asyncio.TimeoutError:
+            raise error_type("Telegram timed out while locating the attachment; resend it or send text") from None
+        except TelegramAPIError:
+            raise error_type("Telegram could not provide the attachment download location; resend it or send text") from None
+        except (ConnectionError, aiohttp.ClientError):
+            raise error_type("Could not connect to Telegram to locate the attachment; check the server's network connection and resend it") from None
         if not isinstance(metadata, dict):
             raise error_type("Telegram returned invalid file metadata")
         path = metadata.get("file_path", "")
@@ -69,7 +76,9 @@ class TelegramClient:
             if not data:
                 raise error_type("The attachment is empty; try another file")
             return bytes(data)
-        except (aiohttp.ClientError, asyncio.TimeoutError):
+        except asyncio.TimeoutError:
+            raise error_type("Telegram attachment download timed out; resend it or send text") from None
+        except aiohttp.ClientError:
             # Download exception URLs contain bot tokens.
             raise error_type("The attachment could not be downloaded; try again or send text") from None
 

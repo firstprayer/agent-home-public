@@ -344,7 +344,12 @@ key, or server-side speech model is required; decoding capability belongs to the
 assigned agent. Typed messages are forwarded unchanged.
 
 The cloud Telegram Bot API limits voice downloads to 20 MB. Invalid, oversized,
-unreadable, or failed downloads produce a warning without submitting work. The
+unreadable, or failed downloads produce a warning without submitting work. Warnings
+distinguish Telegram file-location failures, download timeouts, and local saving
+failures. Saving warnings include the OS error description, such as permission
+denied or a full disk. Voice failures also appear in the dashboard event log;
+bot tokens and provider URLs are never included. Fix the reported issue and resend
+the recording; failed instructions are not automatically retried. The
 bridge rechecks access after downloading, persists the voice path and exact
 sleeve address with the receipt, and preserves the same turn-recipient routing
 for replies. Active turns receive the file as steering input. AdminAppSleeve

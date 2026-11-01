@@ -1,4 +1,6 @@
+import asyncio
 import dataclasses
+import errno
 import os
 from pathlib import Path
 import subprocess
@@ -14,7 +16,7 @@ from aiohttp.test_utils import TestServer
 from agent_home.models import AgentIdentity, AgentSleeve, CommunicationPolicy, ExternalIdentity, TelegramIdentity
 from agent_home.service import Bridge
 from agent_home.storage import Store
-from agent_home.telegram import TelegramClient
+from agent_home.telegram import TelegramAPIError, TelegramClient
 from agent_home.voice import VoiceError, save_voice
 
 
@@ -102,6 +104,19 @@ class VoiceRoutingTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("could not be downloaded", self.store.data["outbox"][-1]["text"])
         self.assertIn("not submitted", self.store.data["outbox"][-1]["text"])
         self.assertEqual(self.submitted_methods(), [])
+        self.assertIn("Voice input rejected before submission", self.store.data["events"][-1]["message"])
+
+    async def test_save_failure_reports_download_succeeded_without_submitting_or_replaying(self):
+        job = self.job()
+        with patch("agent_home.voice.save_attachment", side_effect=PermissionError(errno.EACCES, "Permission denied", "/private/path")):
+            await self.bridge.handle(job)
+        warning = self.store.data["outbox"][-1]["text"]
+        self.assertIn("downloaded but could not be saved", warning)
+        self.assertIn("Permission denied", warning)
+        self.assertNotIn("/private/path", warning)
+        self.assertEqual(self.submitted_methods(), [])
+        self.assertNotIn("voice_path", job)
+        self.assertNotIn("voice_path", Store(self.store.path).data["inbox"][-1])
 
     async def test_revocation_or_cancellation_after_download_prevents_saving_and_submission(self):
         for revoke in (True, False):
@@ -176,6 +191,26 @@ class VoiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.telegram.download_voice(self.identity, self.voice), b"OggS")
         self.assertEqual(self.requests, ["/getFile", "/files/voice/note.oga"])
 
+    async def test_metadata_failures_identify_download_stage_without_exposing_credentials(self):
+        errors = (
+            (asyncio.TimeoutError(), "timed out while locating"),
+            (ConnectionError(TOKEN), "Could not connect to Telegram"),
+            (TelegramAPIError("getFile", {"error_code": 400, "description": TOKEN}), "could not provide"),
+        )
+        for error, expected in errors:
+            with self.subTest(error=type(error).__name__), patch.object(self.telegram, "request", side_effect=error):
+                with self.assertRaises(VoiceError) as caught:
+                    await self.telegram.download_voice(self.identity, self.voice)
+                self.assertIn(expected, str(caught.exception))
+                self.assertNotIn(TOKEN, str(caught.exception))
+        self.assertEqual(self.requests, [])
+
+    async def test_download_timeout_is_distinct_from_metadata_failure(self):
+        with patch.object(self.telegram.http, "get", side_effect=asyncio.TimeoutError(TOKEN)):
+            with self.assertRaisesRegex(VoiceError, "attachment download timed out") as caught:
+                await self.telegram.download_voice(self.identity, self.voice)
+        self.assertNotIn(TOKEN, str(caught.exception))
+
     async def test_oversized_or_invalid_voice_is_rejected_before_network(self):
         for changes in ({"duration": -1}, {"file_size": 20_000_001}, {"file_id": ""}):
             with self.subTest(changes=changes), self.assertRaises(VoiceError):
@@ -214,13 +249,13 @@ class VoiceStorageTests(unittest.TestCase):
         outside = self.root / "outside"
         outside.mkdir()
         (self.root / ".local").symlink_to(outside, target_is_directory=True)
-        with self.assertRaises(OSError):
+        with self.assertRaisesRegex(VoiceError, "downloaded but could not be saved"):
             save_voice(self.root, "receipt", b"OggS")
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_existing_audio_is_never_overwritten_and_mime_only_selects_known_extensions(self):
         path = Path(save_voice(self.root, "receipt", b"original", "audio/mpeg"))
-        with self.assertRaises(FileExistsError):
+        with self.assertRaisesRegex(VoiceError, "File exists"):
             save_voice(self.root, "receipt", b"replacement", "audio/mpeg")
         self.assertEqual(path.read_bytes(), b"original")
         self.assertEqual(path.suffix, ".mp3")
